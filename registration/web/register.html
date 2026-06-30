@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>FaceRoll · Biometric Enrollment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#00060e; --panel:#030d1a; --panel2:#071828;
+    --line:#0c2038; --line2:#122840;
+    --txt:#b0d4f0; --txt2:#dff0ff; --muted:#2e4d68; --muted2:#4a7090;
+    --cyan:#00d4ff; --cyan2:#30e8d0; --cyan-dim:#002e44;
+    --cyan-glow:rgba(0,212,255,.28);
+    --magenta:#ff2070; --gold:#ffa500;
+    --good:#00f080; --good-dim:rgba(0,240,128,.12);
+    --bad:#ff3344;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overscroll-behavior:none}
+  body{
+    background:var(--bg);
+    color:var(--txt);font-family:"Sora",system-ui,sans-serif;
+    display:flex;justify-content:center;min-height:100dvh;overflow:hidden;
+  }
+  /* Animated tech-grid background */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(0,212,255,.028) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,212,255,.028) 1px,transparent 1px);
+    background-size:36px 36px;
+    animation:grid-drift 30s linear infinite;
+  }
+  @keyframes grid-drift{to{background-position:36px 36px}}
+  /* Radial vignette on top of grid */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse 80% 100% at 50% 50%,transparent 35%,rgba(0,4,12,.85) 100%);
+  }
+  .app{
+    width:100%;max-width:440px;display:flex;flex-direction:column;min-height:100dvh;
+    position:relative;z-index:2;
+    border-left:1px solid var(--line);border-right:1px solid var(--line);
+  }
+  .hidden{display:none!important}
+
+  /* ── HEADER ── */
+  header{
+    padding:14px 18px 12px;display:flex;align-items:center;gap:12px;
+    border-bottom:1px solid var(--line);
+    background:rgba(0,6,14,.92);backdrop-filter:blur(12px);
+    position:sticky;top:0;z-index:10;
+  }
+  .logo-hex{
+    width:30px;height:30px;background:var(--cyan);border-radius:7px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    box-shadow:0 0 18px var(--cyan-glow),0 0 36px rgba(0,212,255,.12);
+  }
+  .logo-hex svg{width:16px;height:16px}
+  header h1{
+    font-size:15px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    background:linear-gradient(110deg,var(--txt2) 40%,var(--cyan));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .live-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--good);box-shadow:0 0 8px var(--good);
+    animation:blink 2.4s ease infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  .model-tag{
+    font-family:"Space Mono",monospace;font-size:9px;letter-spacing:.12em;
+    color:var(--cyan);border:1px solid var(--cyan-dim);
+    padding:3px 7px;border-radius:5px;background:rgba(0,212,255,.05);
+  }
+
+  .screen{flex:1;display:flex;flex-direction:column;padding:18px}
+
+  /* ── INTRO ── */
+  .hero{
+    border:1px solid var(--line2);border-radius:16px;padding:20px;
+    background:linear-gradient(148deg,var(--panel2),var(--panel));
+    position:relative;overflow:hidden;margin-bottom:4px;
+  }
+  .hero::before{
+    content:"";position:absolute;top:-50%;right:-10%;
+    width:220px;height:220px;border-radius:50%;
+    background:radial-gradient(circle,rgba(0,212,255,.13) 0%,transparent 70%);
+    animation:orb 5s ease-in-out infinite;
+  }
+  @keyframes orb{0%,100%{transform:scale(1) translate(0,0);opacity:.7}50%{transform:scale(1.15) translate(-10px,12px);opacity:1}}
+  .hero-icon{font-size:28px;display:block;margin-bottom:8px;animation:float 4s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .hero h2{font-weight:800;font-size:20px;letter-spacing:-.02em;line-height:1.2;color:var(--txt2);position:relative}
+  .hero p{color:var(--muted2);font-size:12.5px;margin-top:7px;line-height:1.65;position:relative}
+
+  label{
+    display:block;font-family:"Space Mono",monospace;font-size:10px;
+    color:var(--muted2);margin:13px 0 6px;letter-spacing:.1em;text-transform:uppercase;
+  }
+  input,select{
+    width:100%;padding:13px 16px;
+    background:var(--panel);border:1px solid var(--line2);border-radius:11px;
+    color:var(--txt);font-size:15px;font-family:inherit;outline:none;transition:.2s;
+  }
+  input:focus,select:focus{
+    border-color:var(--cyan);
+    box-shadow:0 0 0 3px rgba(0,212,255,.1),inset 0 0 0 1px rgba(0,212,255,.15);
+  }
+  input::placeholder{color:var(--muted)}
+  select{
+    -webkit-appearance:none;appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232e4d68' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 16px center;padding-right:44px;
+  }
+  select option{background:var(--panel)}
+
+  .btn{
+    width:100%;padding:14px;border:none;border-radius:12px;
+    font-size:15px;font-weight:700;font-family:"Sora";
+    cursor:pointer;transition:transform .08s,box-shadow .2s;letter-spacing:.02em;
+  }
+  .btn:active{transform:scale(.984)}
+  .btn-primary{
+    background:linear-gradient(130deg,#00d4ff 0%,#0099cc 100%);
+    color:#001c28;
+    box-shadow:0 5px 22px rgba(0,212,255,.32),0 2px 6px rgba(0,0,0,.5);
+  }
+  .btn-primary:hover{box-shadow:0 8px 30px rgba(0,212,255,.45)}
+  .btn-primary:disabled{
+    background:var(--panel);border:1px solid var(--line);
+    color:var(--muted);box-shadow:none;cursor:not-allowed;
+  }
+  .btn-ghost{
+    background:transparent;border:1px solid var(--line2);
+    color:var(--muted2);margin-top:8px;
+  }
+  .btn-ghost:hover{border-color:var(--line2);color:var(--txt)}
+  .mt-auto{margin-top:auto}
+  .note{font-size:10.5px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.5;font-family:"Space Mono",monospace}
+
+  /* ── SCANNER ── */
+  .stage{
+    position:relative;width:100%;aspect-ratio:3/4;
+    border-radius:18px;overflow:hidden;
+    background:#000;border:1px solid var(--line2);
+    box-shadow:0 0 0 1px rgba(0,212,255,.04),0 24px 64px rgba(0,0,0,.9);
+  }
+  video,canvas.mesh{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  video{transform:scaleX(-1)}
+
+  /* Stage corner marks */
+  .corner{position:absolute;width:20px;height:20px;z-index:5;border-color:var(--cyan);border-style:solid}
+  .corner.tl{top:10px;left:10px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+  .corner.tr{top:10px;right:10px;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+  .corner.bl{bottom:10px;left:10px;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+  .corner.br{bottom:10px;right:10px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+
+  /* HUD top */
+  .hud-top{
+    position:absolute;top:0;left:0;right:0;padding:14px 16px 28px;z-index:3;
+    background:linear-gradient(rgba(0,6,14,.92) 0%,transparent 100%);
+  }
+  .target{
+    font-family:"Space Mono",monospace;font-size:9px;color:var(--cyan);
+    letter-spacing:.22em;text-transform:uppercase;
+    display:flex;align-items:center;gap:5px;
+  }
+  .target-dot{
+    width:5px;height:5px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 6px var(--cyan);animation:blink 1.4s ease infinite;flex-shrink:0;
+  }
+  .say{font-weight:800;font-size:18px;margin-top:4px;line-height:1.15;color:var(--txt2)}
+  .why{font-size:11.5px;color:rgba(160,200,230,.65);margin-top:3px}
+
+  /* status chips */
+  .chips{position:absolute;left:10px;bottom:85px;display:flex;flex-direction:column;gap:5px;z-index:3}
+  .chip{
+    display:flex;align-items:center;gap:5px;
+    font-family:"Space Mono",monospace;font-size:9px;letter-spacing:.06em;
+    background:rgba(0,6,14,.82);border:1px solid rgba(12,32,56,.9);
+    padding:4px 8px;border-radius:5px;backdrop-filter:blur(10px);color:var(--muted2);
+  }
+  .chip .d{width:5px;height:5px;border-radius:50%;background:var(--bad);transition:.3s;flex-shrink:0}
+  .chip.on{color:var(--txt);border-color:rgba(0,212,255,.18)}
+  .chip.on .d{background:var(--good);box-shadow:0 0 5px var(--good)}
+
+  /* capture ring */
+  .ring-wrap{position:absolute;right:12px;bottom:78px;width:64px;height:64px;z-index:4}
+  .ring-wrap svg{transform:rotate(-90deg)}
+  .ring-bg{stroke:rgba(255,255,255,.07)}
+  .ring-fg{stroke:var(--cyan);transition:stroke-dashoffset .07s linear;filter:drop-shadow(0 0 5px var(--cyan))}
+  .ring-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px}
+
+  /* progress pips */
+  .hud-bot{
+    position:absolute;left:0;right:0;bottom:0;padding:12px 14px 14px;z-index:3;
+    background:linear-gradient(transparent,rgba(0,6,14,.96));
+  }
+  .pips{display:flex;gap:4px;justify-content:center}
+  .pip{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.07);transition:.3s;max-width:36px}
+  .pip.done{background:var(--cyan);box-shadow:0 0 7px var(--cyan)}
+  .pip.active{background:var(--txt2)}
+  .pip.retake{background:var(--magenta);box-shadow:0 0 7px var(--magenta)}
+
+  /* thumbnail shots strip */
+  .shots{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+  .thumb-wrap{display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  .thumb-img-area{position:relative;width:44px;height:56px;flex-shrink:0;border-radius:8px;overflow:hidden}
+  .thumb-img-area img{
+    width:44px;height:56px;object-fit:cover;display:block;
+    border:1.5px solid var(--cyan-dim);border-radius:8px;
+    transform:scaleX(-1);transition:border-color .3s,box-shadow .3s,opacity .25s;
+  }
+  .thumb-img-area canvas{position:absolute;top:0;left:0;width:44px;height:56px;pointer-events:none}
+  .thumb-wrap:hover .thumb-img-area img{border-color:var(--magenta);box-shadow:0 0 10px rgba(255,32,112,.35)}
+  .thumb-img-area img.retaking{border-color:var(--magenta);box-shadow:0 0 14px rgba(255,32,112,.4);opacity:.4}
+  .thumb-score{font-family:"Space Mono",monospace;font-size:7px;letter-spacing:.04em;color:var(--muted);line-height:1;transition:color .3s;pointer-events:none}
+
+  /* scanline */
+  .scanline{
+    position:absolute;left:0;right:0;height:1px;z-index:2;
+    background:linear-gradient(90deg,transparent 0%,transparent 15%,var(--cyan) 45%,rgba(0,212,255,.9) 50%,var(--cyan) 55%,transparent 85%,transparent 100%);
+    opacity:.35;animation:scan 4.5s ease-in-out infinite;
+  }
+  @keyframes scan{0%,100%{top:6%}50%{top:90%}}
+
+  /* ── UPLOAD ── */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .proc-ring{position:relative;width:88px;height:88px;margin-bottom:22px}
+  .proc-ring svg{width:88px;height:88px;animation:spin 2.2s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .proc-track{fill:none;stroke:var(--line2);stroke-width:2.5}
+  .proc-fill{fill:none;stroke:var(--cyan);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:240;stroke-dashoffset:60;filter:drop-shadow(0 0 5px var(--cyan))}
+  .proc-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px}
+  .center h2{font-weight:800;font-size:21px;letter-spacing:-.01em;color:var(--txt2)}
+  .center .sub{color:var(--muted2);margin-top:8px;font-size:12.5px;max-width:260px;line-height:1.7}
+  .proc-steps{margin-top:18px;display:flex;flex-direction:column;gap:7px;width:100%;max-width:240px}
+  .proc-step{
+    display:flex;align-items:center;gap:8px;
+    font-family:"Space Mono",monospace;font-size:9.5px;color:var(--muted2);
+    opacity:0;animation:fadein .4s ease forwards;
+  }
+  .proc-step:nth-child(2){animation-delay:.8s}
+  .proc-step:nth-child(3){animation-delay:1.6s}
+  .proc-step .sd{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0}
+  @keyframes fadein{to{opacity:1}}
+
+  /* ── RESULT ── */
+  .r-badge{
+    width:76px;height:76px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:30px;
+    margin-bottom:16px;
+    animation:badge-pop .45s cubic-bezier(.175,.885,.32,1.275);
+  }
+  .r-badge.ok{background:var(--good-dim);border:2px solid var(--good);box-shadow:0 0 28px rgba(0,240,128,.18)}
+  .r-badge.fail{background:rgba(255,51,68,.1);border:2px solid var(--bad);box-shadow:0 0 28px rgba(255,51,68,.18)}
+  @keyframes badge-pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+  .breakdown{
+    width:100%;margin-top:16px;
+    border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:var(--panel);
+  }
+  .row{
+    display:flex;align-items:center;gap:9px;
+    padding:10px 14px;border-bottom:1px solid var(--line);
+    font-size:12px;text-align:left;
+  }
+  .row:last-child{border:none}
+  .row .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .row .dot.ok{background:var(--good);box-shadow:0 0 5px var(--good)}
+  .row .dot.no{background:var(--bad);box-shadow:0 0 5px var(--bad)}
+  .row .rwhy{color:var(--muted2);margin-left:auto;font-family:"Space Mono",monospace;font-size:9.5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo-hex">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="5" height="5" rx="1" fill="#001c28"/>
+        <rect x="9" y="2" width="5" height="5" rx="1" fill="#001c28"/>
+        <rect x="2" y="9" width="5" height="5" rx="1" fill="#001c28"/>
+        <rect x="10" y="10" width="3" height="3" rx=".5" fill="#001c28"/>
+        <circle cx="12.5" cy="11.5" r="2.5" fill="#001c28"/>
+      </svg>
+    </div>
+    <h1>FACEROLL</h1>
+    <div class="hdr-right">
+      <div class="live-dot"></div>
+      <div class="model-tag">Face scan · Secure enrollment</div>
+    </div>
+  </header>
+
+  <!-- INTRO -->
+  <section class="screen" id="s-intro">
+    <div class="hero">
+      <span class="hero-icon">🛰️</span>
+      <h2>Biometric Enrollment</h2>
+      <p>Follow the on-screen guidance to capture a few clear angles. Photos are checked for quality and used to build your secure face profile.</p>
+    </div>
+    <label>Full name</label>
+    <input id="f-name" placeholder="Rahul Sharma" autocomplete="off" maxlength="100"/>
+    <label>Roll number</label>
+    <input id="f-roll" placeholder="2200290100001" autocomplete="off" maxlength="50"/>
+    <label>Branch</label>
+    <select id="f-branch">
+      <option value="">Loading branches…</option>
+    </select>
+    <label>Year</label>
+    <select id="f-year">
+      <option value="">Select year</option>
+      <option value="1">1st Year</option>
+      <option value="2">2nd Year</option>
+      <option value="3">3rd Year</option>
+      <option value="4">4th Year</option>
+    </select>
+    <label>Section</label>
+    <select id="f-sec">
+      <option value="">Select section</option>
+      <option value="A">Section A</option>
+      <option value="B">Section B</option>
+      <option value="C">Section C</option>
+      <option value="D">Section D</option>
+    </select>
+    <button class="btn btn-primary mt-auto" id="go">Begin scan →</button>
+    <p class="note">Loads a face-mesh engine on first run · needs camera + good light</p>
+  </section>
+
+  <!-- SCANNER -->
+  <section class="screen hidden" id="s-scan">
+    <div class="stage" id="stage">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas class="mesh" id="mesh"></canvas>
+      <div class="scanline"></div>
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="hud-top">
+        <div class="target" id="t-step"><span class="target-dot"></span>TARGET 1 / 7</div>
+        <div class="say" id="t-say">Center your face</div>
+        <div class="why" id="t-why">Look straight into the lens</div>
+      </div>
+
+      <div class="chips">
+        <div class="chip" id="c-face"><span class="d"></span>FACE</div>
+        <div class="chip" id="c-light"><span class="d"></span>LIGHT</div>
+        <div class="chip" id="c-tilt"><span class="d"></span>TILT</div>
+        <div class="chip" id="c-still"><span class="d"></span>STILL</div>
+        <div class="chip" id="c-pose"><span class="d"></span>POSE</div>
+      </div>
+
+      <div class="ring-wrap">
+        <svg width="62" height="62" viewBox="0 0 62 62">
+          <circle class="ring-bg" cx="31" cy="31" r="27" fill="none" stroke-width="4"/>
+          <circle class="ring-fg" id="ring" cx="31" cy="31" r="27" fill="none" stroke-width="4"
+                  stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+        </svg>
+        <div class="ring-core" id="ring-core">◎</div>
+      </div>
+
+      <div class="hud-bot">
+        <div class="pips" id="pips"></div>
+        <div class="shots" id="shots"></div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="manual">Capture this frame manually</button>
+    <button class="btn btn-primary hidden" id="btn-submit" style="margin-top:10px">Submit → Upload photos</button>
+    <button class="btn btn-ghost" id="cancel" style="margin-top:8px">Cancel enrollment</button>
+    <canvas id="grab" class="hidden"></canvas>
+  </section>
+
+  <!-- UPLOAD -->
+  <section class="screen hidden" id="s-upload">
+    <div class="center">
+      <div class="proc-ring">
+        <svg viewBox="0 0 88 88"><circle class="proc-track" cx="44" cy="44" r="38"/><circle class="proc-fill" cx="44" cy="44" r="38"/></svg>
+      <div class="proc-icon">🧬</div>
+      </div>
+      <h2>Processing…</h2>
+      <p class="sub">Detecting face · verifying photo quality · creating your face profile</p>
+      <div class="proc-steps">
+        <div class="proc-step"><span class="sd"></span>Detecting your face</div>
+        <div class="proc-step"><span class="sd"></span>Checking clarity and lighting</div>
+        <div class="proc-step"><span class="sd"></span>Saving your enrollment profile</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen hidden" id="s-result">
+    <div class="center">
+      <div class="r-badge" id="r-badge">✅</div>
+      <h2 id="r-title">Enrolled</h2>
+      <div class="sub" id="r-sub"></div>
+      <div class="breakdown" id="r-break"></div>
+    </div>
+    <button class="btn btn-ghost mt-auto" id="retake" style="display:none">Retake photos</button>
+    <button class="btn btn-primary" id="again" style="margin-top:10px">Enroll another →</button>
+  </section>
+</div>
+
+<script type="module">
+import { FaceLandmarker, FilesetResolver, DrawingUtils }
+  from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
+
+const $ = id => document.getElementById(id);
+
+// ── 7-pose plan: 2 side turns + 2 overhead (board-cam) angles + chin-down + 2 front.
+//    Baseline is auto-calibrated at step 0 → immune to camera mirroring / per-phone quirks.
+const STEPS = [
+  { say:"Center your face",          why:"Look straight into the lens",              axis:"front"  },
+  { say:"Turn head right",           why:"Slow turn — keep both eyes visible",       axis:"sideA"  },
+  { say:"Turn head left",            why:"Profile the opposite cheek",               axis:"sideB"  },
+  { say:"Raise the phone HIGH",      why:"Look up at it — simulates the board cam",  axis:"vert"   },
+  { say:"Phone HIGH again",          why:"Second overhead angle — hold steady",      axis:"vert2"  },
+  { say:"Chin slightly down",        why:"Looking-down angle — like a desk cam",     axis:"down"   },
+  { say:"Relax, look straight",      why:"Natural expression for your profile",      axis:"front2" },
+];
+
+// MediaPipe canonical landmark indices used for pose geometry
+const IDX = { nose:1, eyeL:263, eyeR:33, cheekL:454, cheekR:234, chin:152, brow:10 };
+
+const RING_LEN        = 169.6;
+const HOLD_FRAMES     = 15;   // ~0.5 s at 30 fps — pose must stay locked AND still
+const RESET_FRAMES    = 10;   // must return near-center for ~0.33 s before next pose starts
+const MOTION_THRESHOLD = 0.018; // max yaw/pitch delta per frame to qualify as "still"
+const state = {
+  step:0, shots:[], base:null, sideSign:0,
+  hold:0, busy:false, landmarker:null, drawer:null, raf:null,
+  sectionId: null,
+  needsReset:   false, // true after every capture until face returns to neutral
+  resetHold:    0,     // consecutive neutral frames since last capture
+  allCaptured:  false, // true once all 7 shots are done (review mode)
+  retakeIndex:  null,  // index of shot being retaken (null = normal flow)
+  savedStep:    0,     // step to resume after a mid-flow retake
+  prevPose:     null,  // {yaw,pitch} from previous frame — for motion detection
+  isMoving:     false, // true when head is actively changing position between frames
+};
+
+// progress pips
+STEPS.forEach((_,i)=>{const d=document.createElement("div");d.className="pip";d.id="pip"+i;$("pips").appendChild(d);});
+function paintStep(){
+  const s=STEPS[state.step];
+  $("t-step").textContent=`TARGET ${state.step+1} / ${STEPS.length}`;
+  $("t-say").textContent=s.say; $("t-why").textContent=s.why;
+  STEPS.forEach((_,k)=>$("pip"+k).className="pip"+(k<state.step?" done":k===state.step?" active":""));
+}
+
+async function loadBranches(){
+  try{
+    const r=await fetch("/branches");
+    const data=await r.json();
+    const sel=$("f-branch");
+    sel.innerHTML='<option value="">Select branch</option>';
+    (data.branches||[]).forEach(b=>{
+      const o=document.createElement("option");
+      o.value=b.code;
+      o.textContent=`${b.code} — ${b.name}`;
+      sel.appendChild(o);
+    });
+    if(!data.branches||!data.branches.length){
+      sel.innerHTML='<option value="">No branches found — run seed.py first</option>';
+    }
+  }catch(e){
+    $("f-branch").innerHTML='<option value="">Could not load branches</option>';
+  }
+}
+
+$("go").onclick=async()=>{
+  const name=$("f-name").value.trim();
+  const roll=$("f-roll").value.trim();
+  const branch=$("f-branch").value;
+  const year=$("f-year").value;
+  const sec=$("f-sec").value;
+  if(!name || name.length < 2)       { alert("Enter your full name (at least 2 characters)."); return; }
+  if(!roll)                           { alert("Enter your roll number."); return; }
+  if(!branch)                         { alert("Select your branch."); return; }
+  if(!year)                           { alert("Select your year."); return; }
+  if(!sec)                            { alert("Select your section."); return; }
+  const btn=$("go"); btn.textContent="Checking section…"; btn.disabled=true;
+  try{
+    const r=await fetch(`/sections/lookup?branch=${encodeURIComponent(branch)}&year=${year}&section=${encodeURIComponent(sec)}`);
+    if(!r.ok){
+      const err=await r.json().catch(()=>({}));
+      throw new Error(err.detail||"Section not found. Ask your admin to run seed.py.");
+    }
+    const data=await r.json();
+    state.sectionId=data.section_id;
+  }catch(e){
+    alert(e.message);
+    btn.textContent="Begin scan →"; btn.disabled=false;
+    return;
+  }
+  $("s-intro").classList.add("hidden"); $("s-scan").classList.remove("hidden");
+  await boot();
+};
+
+async function boot(){
+  if(!state.landmarker){
+    try{
+      const fileset = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm");
+      state.landmarker = await FaceLandmarker.createFromOptions(fileset,{
+        baseOptions:{ modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate:"GPU" },
+        runningMode:"VIDEO", numFaces:1, outputFaceBlendshapes:false
+      });
+    }catch(e){ alert("Could not load the face-mesh engine.\n"+e.message); return; }
+  }
+
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"user",width:{ideal:960},height:{ideal:1280}},audio:false});
+    const v=$("video"); v.srcObject=stream; await v.play();
+    state.stream=stream;
+  }catch(e){ alert("Camera permission needed.\n"+e.message); return; }
+
+  const v=$("video"), c=$("mesh");
+  c.width=v.videoWidth||720; c.height=v.videoHeight||960;
+  state.drawer=new DrawingUtils(c.getContext("2d"));
+  paintStep();
+  state.raf=requestAnimationFrame(loop);
+}
+
+function brightnessOf(v){
+  const g=$("grab"); g.width=64; g.height=64;
+  const x=g.getContext("2d",{willReadFrequently:true});
+  x.drawImage(v,0,0,64,64); const d=x.getImageData(0,0,64,64).data;
+  let s=0; for(let i=0;i<d.length;i+=4){s+=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];}
+  return s/(d.length/4);
+}
+
+function poseFrom(lm){
+  const p=i=>lm[i];
+  const faceW=Math.abs(p(IDX.cheekR).x-p(IDX.cheekL).x);
+  const faceH=Math.abs(p(IDX.chin).y-p(IDX.brow).y);
+  const midX=(p(IDX.cheekR).x+p(IDX.cheekL).x)/2;
+  const eyeMidY=(p(IDX.eyeL).y+p(IDX.eyeR).y)/2;
+  // Roll (head lean): ratio of eye-pair vertical drift to horizontal span.
+  // Values: 0.30 ≈ 17°, 0.40 ≈ 22°. Reject anything above ~17°.
+  const eyeDx=Math.abs(p(IDX.eyeL).x-p(IDX.eyeR).x);
+  const eyeDy=Math.abs(p(IDX.eyeL).y-p(IDX.eyeR).y);
+  const tiltOK = eyeDx < 0.01 ? true : eyeDy/eyeDx < 0.30;
+  return {
+    yaw:(p(IDX.nose).x-midX)/faceW,
+    pitch:(p(IDX.nose).y-eyeMidY)/faceH,
+    sizeOK: faceW>0.20,
+    tiltOK
+  };
+}
+
+function matches(axis,pose){
+  const b=state.base||{yaw:0,pitch:0};
+  const dy=pose.yaw-b.yaw, dp=pose.pitch-b.pitch;
+  switch(axis){
+    case "front":  return Math.abs(pose.yaw)<0.06 && Math.abs(pose.pitch)<0.30;
+    // Side turns: yaw shift > 0.12 but cap at 0.45 — extreme turns blur the ear angle
+    case "sideA":  return Math.abs(dy)>0.12 && Math.abs(dy)<0.45;
+    case "sideB":  return Math.abs(dy)>0.12 && Math.abs(dy)<0.45 && Math.sign(dy)===-state.sideSign;
+    // Overhead angles: pitch increases when looking up at a raised phone (nose drops in frame)
+    case "vert":   return dp>0.14;
+    case "vert2":  return dp>0.10;          // slightly lower threshold for 2nd overhead shot
+    // Chin down: pitch decreases (nose rises in frame when looking down)
+    case "down":   return dp < -0.10;
+    case "front2": return Math.abs(dy)<0.07 && Math.abs(dp)<0.10;
+  }
+  return false;
+}
+
+function setChip(id,on){ $(id).classList.toggle("on",on); }
+function setRing(frac){
+  $("ring").setAttribute("stroke-dashoffset", RING_LEN*(1-frac));
+  $("ring-core").textContent = frac>=1?"◉":"◎";
+}
+
+function loop(){
+  const v=$("video");
+  if(v.readyState>=2 && state.landmarker && !state.busy){
+    const res=state.landmarker.detectForVideo(v, performance.now());
+    const c=$("mesh"), ctx=c.getContext("2d");
+    ctx.save(); ctx.clearRect(0,0,c.width,c.height);
+    ctx.translate(c.width,0); ctx.scale(-1,1);          // mirror to match video
+
+    let faceOK=false, lightOK=false, tiltOK=false, stillOK=false, poseOK=false;
+    const bright=brightnessOf(v); lightOK = bright>55 && bright<210;
+
+    if(res.faceLandmarks && res.faceLandmarks.length){
+      faceOK=true;
+      const lm=res.faceLandmarks[0];
+      drawMesh(lm);
+      const pose=poseFrom(lm);
+      faceOK = faceOK && pose.sizeOK;
+      tiltOK = pose.tiltOK;
+
+      // ── Motion detection ─────────────────────────────────────────────
+      // Compare pose to previous frame. If the head moved too much the
+      // user is still transitioning — don't count this frame toward hold.
+      if(state.prevPose!==null){
+        state.isMoving = Math.abs(pose.yaw  - state.prevPose.yaw)   > MOTION_THRESHOLD ||
+                         Math.abs(pose.pitch - state.prevPose.pitch) > MOTION_THRESHOLD;
+      } else {
+        state.isMoving = false;  // first frame after face re-appears
+      }
+      state.prevPose = {yaw:pose.yaw, pitch:pose.pitch};
+      stillOK = faceOK && !state.isMoving;
+
+      const activeStep = state.retakeIndex!==null ? state.retakeIndex : state.step;
+
+      // All 5 conditions must be true before hold accumulates or capture fires
+      poseOK = faceOK && lightOK && tiltOK && stillOK && matches(STEPS[activeStep].axis, pose);
+
+      if(state.needsReset){
+        const b=state.base||{yaw:0,pitch:0};
+        const nearCenter = Math.abs(pose.yaw-b.yaw)<0.10 && Math.abs(pose.pitch-b.pitch)<0.10;
+        $("t-why").textContent = nearCenter
+          ? `Hold center… (${RESET_FRAMES-state.resetHold} frames)`
+          : "↩  Come back to center first";
+        if(nearCenter){ state.resetHold++; } else { state.resetHold=0; }
+        if(state.resetHold>=RESET_FRAMES){
+          state.needsReset=false; state.resetHold=0;
+          $("t-why").textContent=STEPS[activeStep].why;
+        }
+        state.hold=0;
+      } else if(poseOK && (!state.allCaptured || state.retakeIndex!==null)){
+        // Guard: after all shots are done (review mode), block any new auto-captures.
+        // Without this, the blob callback's async gap lets the loop fire capture() again.
+        state.hold++;
+        if(state.retakeIndex===null && state.step>0 &&
+           STEPS[state.step].axis==="sideA" && state.sideSign===0){
+          state.sideSign=Math.sign(pose.yaw-(state.base?.yaw||0))||1;
+        }
+        if(state.hold>=HOLD_FRAMES) capture(v,pose);
+      } else {
+        // Any condition failing: bleed hold back down quickly so a brief
+        // movement can't coast over the finish line on momentum
+        state.hold=Math.max(0,state.hold-3);
+        if(!state.needsReset) $("t-why").textContent=STEPS[activeStep].why;
+      }
+    } else {
+      state.hold=Math.max(0,state.hold-2);
+      state.prevPose=null;   // reset motion tracking when face is lost
+      state.isMoving=false;
+    }
+
+    ctx.restore();
+    setChip("c-face",faceOK); setChip("c-light",lightOK);
+    setChip("c-tilt",tiltOK); setChip("c-still",stillOK); setChip("c-pose",poseOK);
+    setRing(Math.min(1,state.hold/HOLD_FRAMES));
+
+    // Manual button is only enabled when face+light+tilt+still are all green.
+    // Pose direction is NOT required — manual is for when auto-detection
+    // struggles to recognise the angle but the user is clearly in position.
+    const canManual = faceOK && lightOK && tiltOK && stillOK &&
+                      !state.needsReset && !state.busy &&
+                      (state.retakeIndex!==null || !state.allCaptured);
+    $("manual").disabled = !canManual;
+  }
+  state.raf=requestAnimationFrame(loop);
+}
+
+function drawMesh(lm){
+  const d=state.drawer, F=FaceLandmarker;
+  const c=$("mesh"), ctx=c.getContext("2d");   // ctx already set up (save/restore in loop)
+  const W=c.width, H=c.height;
+
+  // ── Face mesh layers ────────────────────────────────────────────────
+  d.drawConnectors(lm,F.FACE_LANDMARKS_TESSELATION,{color:"rgba(0,212,255,.12)",lineWidth:1});
+  d.drawConnectors(lm,F.FACE_LANDMARKS_FACE_OVAL, {color:"rgba(0,212,255,.5)",lineWidth:1.2});
+  d.drawConnectors(lm,F.FACE_LANDMARKS_LIPS,       {color:"rgba(0,212,255,.4)",lineWidth:1.5});
+  d.drawConnectors(lm,F.FACE_LANDMARKS_LEFT_EYE,   {color:"#ff2070",lineWidth:1.8});
+  d.drawConnectors(lm,F.FACE_LANDMARKS_RIGHT_EYE,  {color:"#00d4ff",lineWidth:1.8});
+  d.drawConnectors(lm,F.FACE_LANDMARKS_LEFT_EYEBROW, {color:"rgba(255,32,112,.6)",lineWidth:1.2});
+  d.drawConnectors(lm,F.FACE_LANDMARKS_RIGHT_EYEBROW,{color:"rgba(0,212,255,.5)",lineWidth:1.2});
+
+  // ── Live face detection rectangle (computed from face-oval landmark bbox) ──
+  // Mirrors server-side detection output; gives the user a real bounding box.
+  let minX=1, minY=1, maxX=0, maxY=0;
+  FaceLandmarker.FACE_LANDMARKS_FACE_OVAL.forEach(({start})=>{
+    const p=lm[start];
+    if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y;
+    if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y;
+  });
+  const pad=0.018;
+  const rx=(minX-pad)*W, ry=(minY-pad)*H;
+  const rw=(maxX-minX+pad*2)*W, rh=(maxY-minY+pad*2)*H;
+
+  // Outer thin rectangle
+  ctx.strokeStyle="rgba(0,212,255,.55)";
+  ctx.lineWidth=1;
+  ctx.setLineDash([]);
+  ctx.strokeRect(rx,ry,rw,rh);
+
+  // Label strip: "FACE DETECTED" top-left of bbox
+  ctx.fillStyle="rgba(0,6,14,.75)";
+  ctx.fillRect(rx, ry-14, 88, 14);
+  ctx.fillStyle=CLR.cyan;
+  ctx.font="bold 8px 'Space Mono',monospace";
+  ctx.textBaseline="middle";
+  ctx.fillText("FACE DETECTED", rx+4, ry-7);
+  ctx.textBaseline="alphabetic";
+}
+
+// Hex colours matching the CSS vars (canvas API can't use CSS custom properties)
+const CLR = { good:"#00f080", bad:"#ff3344", gold:"#ffa500", muted:"#2e4d68", cyan:"#00d4ff" };
+
+function makeThumbnail(blob, shotIdx){
+  const url=URL.createObjectURL(blob);
+  const img=document.createElement("img");
+  img.onload=()=>URL.revokeObjectURL(url);
+  img.src=url;
+  img.style.opacity="0.55";   // dim while preview is in-flight
+
+  // Canvas overlaid on img — detection bbox will be drawn here
+  const cvs=document.createElement("canvas");
+  cvs.width=42; cvs.height=54;
+
+  const imgArea=document.createElement("div");
+  imgArea.className="thumb-img-area";
+  imgArea.appendChild(img);
+  imgArea.appendChild(cvs);
+
+  const badge=document.createElement("div");
+  badge.className="thumb-score";
+  badge.textContent="…";
+
+  const wrap=document.createElement("div");
+  wrap.className="thumb-wrap";
+  wrap.title=`Tap to retake: ${STEPS[shotIdx].say}`;
+  wrap.onclick=()=>triggerRetake(shotIdx);
+  wrap.appendChild(imgArea);
+  wrap.appendChild(badge);
+
+  previewShot(blob, img, cvs, badge, shotIdx);
+  return wrap;
+}
+
+// Draw detection bounding box as a full annotated thin rectangle on the thumbnail canvas.
+// bbox: [px1,py1,px2,py2] as fractions 0-1 of original (server) image size.
+// The img is scaleX(-1) mirrored, so we flip x coordinates when drawing.
+function drawScrfdBbox(cvs, bbox, color, score){
+  const W=cvs.width, H=cvs.height;
+  const [px1,py1,px2,py2]=bbox;
+
+  // Flip x-axis to match the mirrored img display
+  const x1=(1-px2)*W, y1=py1*H;
+  const bw=(px2-px1)*W, bh=(py2-py1)*H;
+
+  const ctx=cvs.getContext("2d");
+  ctx.clearRect(0,0,W,H);
+
+  // ── Main detection rectangle ──
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.2;
+  ctx.setLineDash([]);
+  ctx.strokeRect(x1,y1,bw,bh);
+
+  // ── Top-left label ──
+  const label=`FACE`;
+  ctx.font="bold 5.5px 'Space Mono',monospace";
+  const tw=ctx.measureText(label).width;
+  ctx.fillStyle=color;
+  ctx.fillRect(x1, y1-9, tw+4, 9);
+  ctx.fillStyle="#000810";
+  ctx.textBaseline="middle";
+  ctx.fillText(label, x1+2, y1-4.5);
+
+  // ── Top-right: confidence score ──
+  const scoreStr=(score??0).toFixed(2);
+  const sw=ctx.measureText(scoreStr).width;
+  ctx.fillStyle=color;
+  ctx.fillRect(x1+bw-sw-4, y1-9, sw+4, 9);
+  ctx.fillStyle="#000810";
+  ctx.fillText(scoreStr, x1+bw-sw-2, y1-4.5);
+  ctx.textBaseline="alphabetic";
+
+  // ── Tiny corner ticks inside the box corners ──
+  const tk=Math.min(bw,bh)*0.14;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.2;
+  const corners=[
+    [x1,y1,x1+tk,y1,x1,y1+tk],
+    [x1+bw,y1,x1+bw-tk,y1,x1+bw,y1+tk],
+    [x1,y1+bh,x1+tk,y1+bh,x1,y1+bh-tk],
+    [x1+bw,y1+bh,x1+bw-tk,y1+bh,x1+bw,y1+bh-tk],
+  ];
+  corners.forEach(([mx,my,lx1,ly1,lx2,ly2])=>{
+    ctx.beginPath();
+    ctx.moveTo(lx1,ly1); ctx.lineTo(mx,my); ctx.lineTo(lx2,ly2);
+    ctx.stroke();
+  });
+}
+
+async function previewShot(blob, img, cvs, badge, shotIdx){
+  try{
+    const fd=new FormData();
+    fd.append("file", blob, "shot.jpg");
+    const r=await fetch("/preview",{method:"POST",body:fd});
+    if(!r.ok){ img.style.opacity="1"; badge.textContent="err"; return; }
+    const d=await r.json();
+
+    img.style.opacity="1";
+
+    let color;
+    if(!d.detected){
+      color=CLR.bad;
+      badge.style.color=color;
+      badge.textContent="no face";
+      img.title=`❌ ${d.reason} — tap to retake`;
+    } else if(!d.passed){
+      color=CLR.gold;
+      badge.style.color=color;
+      badge.textContent=d.det_score.toFixed(2);
+      img.title=`⚠️ ${d.reason}  score ${d.det_score} — tap to retake`;
+    } else {
+      color=CLR.good;
+      badge.style.color=color;
+      badge.textContent=d.det_score.toFixed(2);
+      img.title=`✅ score ${d.det_score}  blur ${d.blur}  bright ${d.brightness} — tap to retake`;
+    }
+
+    img.style.borderColor=color;
+    // Draw the detection box only when a face was detected
+    if(d.detected && d.bbox_pct) drawScrfdBbox(cvs, d.bbox_pct, color, d.det_score);
+  }catch(e){
+    img.style.opacity="1";
+    badge.textContent="—";
+  }
+}
+
+function capture(v,pose){
+  state.busy=true; state.hold=0;
+  if(state.step===0 && state.retakeIndex===null){
+    state.base={yaw:pose.yaw,pitch:pose.pitch};
+  }
+  const g=$("grab"); g.width=v.videoWidth; g.height=v.videoHeight;
+  g.getContext("2d").drawImage(v,0,0);
+  g.toBlob(b=>{
+    if(state.retakeIndex!==null){
+      // ── Retake mode: replace the old shot in-place ──────────────────
+      const idx=state.retakeIndex;
+      state.shots[idx]=b;
+      // Replace entire wrapper (img + badge) with a fresh one
+      const wraps=$("shots").querySelectorAll(".thumb-wrap");
+      if(wraps[idx]) wraps[idx].replaceWith(makeThumbnail(b, idx));
+      // Clear retaking highlight on pips
+      $("pip"+idx).className="pip done";
+      state.retakeIndex=null;
+      state.needsReset=true; state.resetHold=0;
+      setRing(0);
+      if(state.allCaptured){ showReview(); }
+      else { state.step=state.savedStep; paintStep(); }
+      state.busy=false;
+    } else {
+      // ── Normal flow: append shot ─────────────────────────────────────
+      const shotIdx=state.step;
+      state.shots.push(b);
+      $("shots").appendChild(makeThumbnail(b, shotIdx));
+      setRing(0);
+      if(state.step+1<STEPS.length){
+        state.step++;
+        state.needsReset=true; state.resetHold=0;
+        paintStep();
+        state.busy=false;
+      } else {
+        // All shots captured — go to review instead of auto-uploading
+        state.allCaptured=true;
+        state.busy=false;
+        showReview();
+      }
+    }
+  },"image/jpeg",0.92);
+}
+
+function triggerRetake(idx){
+  if(state.busy) return;
+  state.savedStep=state.step;
+  state.retakeIndex=idx;
+  state.needsReset=false; state.resetHold=0; state.hold=0;
+  state.prevPose=null; state.isMoving=false;
+  // Hide submit button while retaking
+  $("btn-submit").classList.add("hidden");
+  // Update HUD to show which pose to redo
+  $("t-step").textContent=`RETAKE ${idx+1} / ${STEPS.length}`;
+  $("t-say").textContent=STEPS[idx].say;
+  $("t-why").textContent=STEPS[idx].why;
+  // Highlight the pip being retaken in magenta
+  STEPS.forEach((_,k)=>{
+    $("pip"+k).className="pip"+(k===idx?" retake":k<state.step?" done":"");
+  });
+  // Mark thumbnail img as being retaken (img is inside the .thumb-wrap div)
+  const imgs=$("shots").querySelectorAll(".thumb-wrap img");
+  if(imgs[idx]) imgs[idx].classList.add("retaking");
+}
+
+function showReview(){
+  $("t-step").textContent="ALL DONE ✓";
+  $("t-say").textContent="Review your photos";
+  $("t-why").textContent="Tap any photo to retake it, then submit";
+  STEPS.forEach((_,k)=>$("pip"+k).className="pip done");
+  setRing(1);
+  $("btn-submit").classList.remove("hidden");
+}
+
+$("manual").onclick=()=>{
+  // Guard: busy means a blob is still encoding from the previous capture.
+  // Without this, rapid clicks would fire capture() twice, corrupt step counter.
+  if(state.busy) return;
+  const v=$("video");
+  if(v.readyState>=2){
+    // Use the current baseline so the base/sideSign logic still works correctly.
+    const fake={yaw:state.base?.yaw??0, pitch:state.base?.pitch??0, tiltOK:true};
+    capture(v, fake);
+  }
+};
+
+function stopAll(){
+  if(state.raf)cancelAnimationFrame(state.raf);
+  if(state.stream)state.stream.getTracks().forEach(t=>t.stop());
+}
+
+async function finish(){
+  stopAll();
+  $("s-scan").classList.add("hidden"); $("s-upload").classList.remove("hidden");
+  const fd=new FormData();
+  fd.append("name",$("f-name").value.trim());
+  fd.append("roll_no",$("f-roll").value.trim());
+  fd.append("section_id",state.sectionId);
+  state.shots.forEach((b,i)=>fd.append("files",b,`shot_${i}.jpg`));
+  try{
+    const r=await fetch("/register",{method:"POST",body:fd});
+    showResult(r.ok, await r.json());
+  }catch(e){ showResult(false,{reason:"network error: "+e.message,photos:[]}); }
+}
+
+function showResult(ok,data){
+  $("s-upload").classList.add("hidden"); $("s-result").classList.remove("hidden");
+  const ok2 = ok && data.success;
+  const badge=$("r-badge");
+  badge.textContent=ok2?"✅":"⚠️";
+  badge.className="r-badge "+(ok2?"ok":"fail");
+  $("r-title").textContent=ok2?"Enrolled Successfully":"Not Enrolled Yet";
+  $("r-sub").textContent=ok2
+    ? `${data.accepted_count} angles accepted · section now holds ${data.section_index_size} face profiles`
+    : (data.reason||"Try again in better light");
+  const bk=$("r-break"); bk.innerHTML="";
+  (data.photos||[]).forEach(p=>{
+    const row=document.createElement("div"); row.className="row";
+    row.innerHTML=`<span class="dot ${p.accepted?'ok':'no'}"></span>Angle ${p.index+1}
+      <span class="rwhy">${p.accepted?'locked':p.reason}</span>`;
+    bk.appendChild(row);
+  });
+  // Show retake button only on failure so the student can try again without re-entering details
+  $("retake").style.display = ok2 ? "none" : "block";
+}
+
+$("btn-submit").onclick=()=>finish();
+$("cancel").onclick=()=>{ stopAll(); location.reload(); };
+$("again").onclick=()=>location.reload();
+
+$("retake").onclick=async()=>{
+  // Reset scan state — keep name/roll/sectionId already resolved
+  state.step=0; state.shots=[]; state.base=null; state.sideSign=0;
+  state.hold=0; state.busy=false; state.needsReset=false; state.resetHold=0;
+  state.allCaptured=false; state.retakeIndex=null; state.savedStep=0;
+  state.prevPose=null; state.isMoving=false;
+  $("btn-submit").classList.add("hidden");
+  $("shots").innerHTML="";
+  $("s-result").classList.add("hidden");
+  $("s-scan").classList.remove("hidden");
+  paintStep();
+  await boot();
+};
+
+loadBranches();
+</script>
+</body>
+</html>

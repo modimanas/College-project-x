@@ -1,0 +1,7 @@
+insightface
+opencv-python
+numpy
+onnxruntime       # Mac/CPU — swap for onnxruntime-gpu on Linux+CUDA (never install both)
+pgvector
+sqlalchemy
+psycopg2-binary   # PostgreSQL driver

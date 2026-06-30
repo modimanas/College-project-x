@@ -1,0 +1,19 @@
+# Core
+numpy>=1.24
+opencv-python-headless>=4.8   # use opencv-python (non-headless) for the kiosk window
+
+# Face detection + recognition (SCRFD + ArcFace/antelopev2)
+insightface>=0.7.3
+onnxruntime>=1.16             # CPU dev; swap for onnxruntime-gpu on the GPU box
+
+# Vector search
+faiss-cpu>=1.7.4             # faiss-gpu on the GPU box
+
+# API
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9      # required for multipart file uploads
+
+# Postgres + pgvector (production store; omit for in-memory dev)
+psycopg[binary]>=3.1
+pgvector>=0.2.5

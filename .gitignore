@@ -1,0 +1,19 @@
+# Python virtual env
+.venv/
+
+# Video folder inside attendance_demo
+attendance_demo/videos/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

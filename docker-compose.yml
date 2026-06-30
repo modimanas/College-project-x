@@ -1,0 +1,47 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: attendance_db
+    environment:
+      POSTGRES_USER: attend
+      POSTGRES_PASSWORD: attend_dev_pw
+      POSTGRES_DB: attendance
+    ports:
+      - "5432:5432"
+    volumes:
+      - attendance_pgdata:/var/lib/postgresql/data
+      # schema.sql auto-runs on first container creation
+      - ./registration/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attend -d attendance"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: attendance_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - attendance_pgadmin:/var/lib/pgadmin
+
+  adminer:
+    image: adminer:4
+    container_name: attendance_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  attendance_pgdata:
+  attendance_pgadmin:
